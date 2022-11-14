@@ -4,14 +4,23 @@ import decompress from "decompress";
 import path from "path";
 import { spawn } from "node:child_process";
 import { mkdirSync, rmSync } from "fs";
+import archiver from "archiver";
 
 const upload = multer({ dest: "uploads/" });
 const app = express();
 
+const lokiPath = path.resolve(".loki/reference");
+
 app.use(express.static("public"));
+
+const archive = archiver("zip", {
+  zlib: { level: 9 },
+});
 
 app.post("/check", upload.single("file"), (req, res) => {
   const unzipToDir = path.resolve("storybooks/" + req.file.filename);
+  const outputZipPath = path.resolve("downloads/" + req.file.filename + ".zip");
+  const output = fs.createWriteStream(outputZipPath);
 
   console.log(unzipToDir);
 
@@ -28,7 +37,7 @@ app.post("/check", upload.single("file"), (req, res) => {
         "loki",
         "update",
         "--chromeConcurrency",
-        "32",
+        "48",
         "--reactUri",
         `file:${sbPath}`,
         "--chromeDockerUseCopy",
@@ -48,10 +57,20 @@ app.post("/check", upload.single("file"), (req, res) => {
       });
 
       child.on("close", (code) => {
-        console.log(`child process exited with code ${code}`);
+        output.on("close", function () {
+          console.log(archive.pointer() + " total bytes");
+          console.log(
+            "archiver has been finalized and the output file descriptor has closed."
+          );
+          res.sendFile(outputZipPath);
+        });
+        output.on("end", function () {
+          console.log("Data has been drained");
+        });
+        archive.pipe(output);
+        archive.directory(lokiPath, false);
+        archive.finalize();
       });
-
-      res.send(files.map((file) => file.path));
     })
     .catch((error) => {
       res.send(error);
