@@ -1,3 +1,6 @@
+uploads/*
+storybooks/*
+
 # Logs
 logs
 *.log

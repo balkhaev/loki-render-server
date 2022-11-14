@@ -1,0 +1,18 @@
+<input type="file" id="file" >
+<button id="button">Send!</button>
+
+<script>
+  const fileEl = document.querySelector('#file')
+  const btnEl = document.querySelector('#button')
+
+  btnEl.addEventListener('click', () => {
+    const formData = new FormData()
+
+    formData.append('file', fileEl.files[0])
+
+    fetch('/check', {
+      method: 'POST',
+      body: formData
+    })
+  })
+</script>
