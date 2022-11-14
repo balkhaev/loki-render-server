@@ -1,5 +1,7 @@
 uploads/*
+downloads/*
 storybooks/*
+.loki
 
 # Logs
 logs

@@ -3,13 +3,19 @@ import multer from "multer";
 import decompress from "decompress";
 import path from "path";
 import { spawn } from "node:child_process";
-import { mkdirSync, rmSync } from "fs";
+import { mkdirSync, createWriteStream } from "fs";
 import archiver from "archiver";
+import fs from "node:fs/promises";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const lokiRefPath = path.join(__dirname, ".loki/reference");
+const uploadDirPath = path.join(__dirname, "/uploads");
+const downloadDirPath = path.join(__dirname, "/downloads");
+const storybooksDirPath = path.join(__dirname, "/storybooks");
 
 const upload = multer({ dest: "uploads/" });
 const app = express();
-
-const lokiPath = path.resolve(".loki/reference");
 
 app.use(express.static("public"));
 
@@ -18,11 +24,9 @@ const archive = archiver("zip", {
 });
 
 app.post("/check", upload.single("file"), (req, res) => {
-  const unzipToDir = path.resolve("storybooks/" + req.file.filename);
-  const outputZipPath = path.resolve("downloads/" + req.file.filename + ".zip");
-  const output = fs.createWriteStream(outputZipPath);
-
-  console.log(unzipToDir);
+  const unzipToDir = path.join(storybooksDirPath, req.file.filename);
+  const outputZipPath = path.join(downloadDirPath, req.file.filename + ".zip");
+  const output = createWriteStream(outputZipPath);
 
   decompress(req.file.path, unzipToDir)
     .then((files) => {
@@ -68,7 +72,7 @@ app.post("/check", upload.single("file"), (req, res) => {
           console.log("Data has been drained");
         });
         archive.pipe(output);
-        archive.directory(lokiPath, false);
+        archive.directory(lokiRefPath, false);
         archive.finalize();
       });
     })
@@ -77,9 +81,15 @@ app.post("/check", upload.single("file"), (req, res) => {
     });
 });
 
-rmSync("./uploads", { recursive: true, force: true });
-rmSync("./storybooks", { recursive: true, force: true });
-mkdirSync("./uploads");
+mkdirSync(uploadDirPath, { recursive: true });
+mkdirSync(downloadDirPath, { recursive: true });
+
+for (const file of await fs.readdir(uploadDirPath)) {
+  await fs.unlink(path.join(uploadDirPath, file));
+}
+for (const file of await fs.readdir(downloadDirPath)) {
+  await fs.unlink(path.join(downloadDirPath, file));
+}
 
 app.listen(3000, () => {
   console.log("Listen on 3000 port");
