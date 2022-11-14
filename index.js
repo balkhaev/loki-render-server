@@ -8,36 +8,68 @@ import archiver from "archiver";
 import fs from "node:fs/promises";
 import { fileURLToPath } from "url";
 
+const app = express();
+const upload = multer({ dest: "uploads/" });
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const zipDirPath = path.join(__dirname, "/public/zip");
 const lokiRefPath = path.join(__dirname, ".loki/reference");
 const uploadDirPath = path.join(__dirname, "/uploads");
-const downloadDirPath = path.join(__dirname, "/downloads");
 const storybooksDirPath = path.join(__dirname, "/storybooks");
 
-const upload = multer({ dest: "uploads/" });
-const app = express();
+let child = null;
+
+mkdirSync(uploadDirPath, { recursive: true });
+mkdirSync(zipDirPath, { recursive: true });
+
+for (const file of await fs.readdir(uploadDirPath)) {
+  await fs.unlink(path.join(uploadDirPath, file));
+}
+for (const file of await fs.readdir(zipDirPath)) {
+  await fs.unlink(path.join(zipDirPath, file));
+}
 
 app.use(express.static("public"));
 
-const archive = archiver("zip", {
-  zlib: { level: 9 },
-});
-
 app.post("/check", upload.single("file"), (req, res) => {
-  const unzipToDir = path.join(storybooksDirPath, req.file.filename);
-  const outputZipPath = path.join(downloadDirPath, req.file.filename + ".zip");
-  const output = createWriteStream(outputZipPath);
+  if (child !== null) {
+    res.send({ error: "Check in progress..." });
+    return;
+  }
 
-  decompress(req.file.path, unzipToDir)
+  const storybookDirPath = path.join(storybooksDirPath, req.file.filename);
+  const outputZipPath = path.join(zipDirPath, req.file.filename + ".zip");
+  const outputWS = createWriteStream(outputZipPath);
+  const archive = archiver("zip", {
+    zlib: { level: 8 },
+  });
+
+  const onProcessClose = (_code) => {
+    archive.pipe(outputWS);
+    archive.directory(lokiRefPath, false);
+    archive.finalize();
+  };
+
+  const onProcessError = () => {
+    res.send({ error: error.message });
+    child = null;
+  };
+
+  outputWS.on("close", () => {
+    res.send({ file: outputZipPath });
+    child = null;
+  });
+
+  decompress(req.file.path, storybookDirPath)
     .then((files) => {
       const isWrapped = files.some(
         (file) => file.path === "storybook-static/" && file.type === "directory"
       );
-      const sbPath = isWrapped ? unzipToDir + "/storybook-static" : unzipToDir;
+      const sbPath = isWrapped
+        ? storybookDirPath + "/storybook-static"
+        : storybookDirPath;
 
-      console.log({ isWrapped, sbPath });
-
-      const child = spawn("npx", [
+      child = spawn("npx", [
         "loki",
         "update",
         "--chromeConcurrency",
@@ -56,40 +88,13 @@ app.post("/check", upload.single("file"), (req, res) => {
         console.error(`stderr: ${data}`);
       });
 
-      child.on("error", (error) => {
-        console.error(`error: ${error.message}`);
-      });
-
-      child.on("close", (code) => {
-        output.on("close", function () {
-          console.log(archive.pointer() + " total bytes");
-          console.log(
-            "archiver has been finalized and the output file descriptor has closed."
-          );
-          res.sendFile(outputZipPath);
-        });
-        output.on("end", function () {
-          console.log("Data has been drained");
-        });
-        archive.pipe(output);
-        archive.directory(lokiRefPath, false);
-        archive.finalize();
-      });
+      child.on("error", onProcessError);
+      child.on("close", onProcessClose);
     })
     .catch((error) => {
       res.send(error);
     });
 });
-
-mkdirSync(uploadDirPath, { recursive: true });
-mkdirSync(downloadDirPath, { recursive: true });
-
-for (const file of await fs.readdir(uploadDirPath)) {
-  await fs.unlink(path.join(uploadDirPath, file));
-}
-for (const file of await fs.readdir(downloadDirPath)) {
-  await fs.unlink(path.join(downloadDirPath, file));
-}
 
 app.listen(3000, () => {
   console.log("Listen on 3000 port");

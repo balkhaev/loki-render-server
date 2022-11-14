@@ -1,6 +1,7 @@
 uploads/*
 downloads/*
 storybooks/*
+public/zip/*
 .loki
 
 # Logs
