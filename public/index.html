@@ -18,6 +18,8 @@
     const data = await res.json()
 
     textareaEl.textContent = JSON.stringify(data, null, 2)
+
+    return data;
   }
 
   btnEl.addEventListener('click', () => {
@@ -30,7 +32,13 @@
       body: formData
     })
 
-    setInterval(fetchStatus, 2000)
+    const intId = setInterval(async () => {
+      const data = await fetchStatus();
+
+      if (data.work !== true) {
+        clearInterval(intId)
+      }
+    }, 2000)
   })
 
   btn2El.addEventListener('click', fetchStatus)

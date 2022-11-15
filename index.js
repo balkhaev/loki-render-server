@@ -84,7 +84,7 @@ app.post("/update", upload.single("file"), (req, res) => {
         "loki",
         "update",
         "--chromeConcurrency",
-        "48",
+        "64",
         "--reactUri",
         `file:${sbPath}`,
         "--chromeDockerUseCopy",
