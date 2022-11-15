@@ -1,11 +1,24 @@
 <input type="file" id="file" >
 <button id="button">Send!</button>
-<button id="button2">Get!</button>
+<button id="button2">Status</button>
+<div>
+  <textarea id="textarea" cols="30" rows="10"></textarea>
+</div>
 
 <script>
   const fileEl = document.querySelector('#file')
   const btnEl = document.querySelector('#button')
   const btn2El = document.querySelector('#button2')
+  const textareaEl = document.querySelector('#textarea')
+
+  const fetchStatus =  async () => {
+    const res = await fetch('/status/', {
+      method: 'GET'
+    })
+    const data = await res.json()
+
+    textareaEl.textContent = JSON.stringify(data, null, 2)
+  }
 
   btnEl.addEventListener('click', () => {
     const formData = new FormData()
@@ -16,11 +29,9 @@
       method: 'POST',
       body: formData
     })
+
+    setInterval(fetchStatus, 2000)
   })
 
-  btn2El.addEventListener('click', () => {
-    fetch('/status/', {
-      method: 'GET'
-    })
-  })
+  btn2El.addEventListener('click', fetchStatus)
 </script>

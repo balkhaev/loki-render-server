@@ -46,12 +46,16 @@ app.post("/update", upload.single("file"), (req, res) => {
   });
 
   const onProcessClose = (_code) => {
+    console.log("loki process close");
+
     archive.pipe(outputWS);
     archive.directory(lokiRefPath, false);
     archive.finalize();
   };
 
   const onProcessError = () => {
+    console.log("loki process error");
+
     child = null;
     lastZip = null;
 
@@ -59,6 +63,8 @@ app.post("/update", upload.single("file"), (req, res) => {
   };
 
   outputWS.on("close", () => {
+    console.log("archive process close");
+
     child = null;
     lastZip = outputZipPath;
 
