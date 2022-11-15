@@ -1,18 +1,26 @@
 <input type="file" id="file" >
 <button id="button">Send!</button>
+<button id="button2">Get!</button>
 
 <script>
   const fileEl = document.querySelector('#file')
   const btnEl = document.querySelector('#button')
+  const btn2El = document.querySelector('#button2')
 
   btnEl.addEventListener('click', () => {
     const formData = new FormData()
 
     formData.append('file', fileEl.files[0])
 
-    fetch('/check', {
+    fetch('/update/', {
       method: 'POST',
       body: formData
+    })
+  })
+
+  btn2El.addEventListener('click', () => {
+    fetch('/status/', {
+      method: 'GET'
     })
   })
 </script>

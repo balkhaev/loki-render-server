@@ -18,6 +18,7 @@ const uploadDirPath = path.join(__dirname, "/uploads");
 const storybooksDirPath = path.join(__dirname, "/storybooks");
 
 let child = null;
+let lastZip = null;
 
 mkdirSync(uploadDirPath, { recursive: true });
 mkdirSync(zipDirPath, { recursive: true });
@@ -31,7 +32,7 @@ for (const file of await fs.readdir(zipDirPath)) {
 
 app.use(express.static("public"));
 
-app.post("/check", upload.single("file"), (req, res) => {
+app.post("/update", upload.single("file"), (req, res) => {
   if (child !== null) {
     res.send({ error: "Check in progress..." });
     return;
@@ -51,13 +52,17 @@ app.post("/check", upload.single("file"), (req, res) => {
   };
 
   const onProcessError = () => {
-    res.send({ error: error.message });
     child = null;
+    lastZip = null;
+
+    res.send({ error: error.message });
   };
 
   outputWS.on("close", () => {
-    res.send({ file: outputZipPath });
     child = null;
+    lastZip = outputZipPath;
+
+    res.send({ file: outputZipPath });
   });
 
   decompress(req.file.path, storybookDirPath)
@@ -94,6 +99,10 @@ app.post("/check", upload.single("file"), (req, res) => {
     .catch((error) => {
       res.send(error);
     });
+});
+
+app.get("/status", (req, res) => {
+  res.send({ work: child !== null, lastZip });
 });
 
 app.listen(3000, () => {
