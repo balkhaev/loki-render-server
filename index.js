@@ -53,8 +53,8 @@ app.post("/update", upload.single("file"), (req, res) => {
     archive.finalize();
   };
 
-  const onProcessError = () => {
-    console.log("loki process error");
+  const onProcessError = (error) => {
+    console.error(error);
 
     child = null;
     lastZip = null;

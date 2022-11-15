@@ -1,45 +1,47 @@
-<input type="file" id="file" >
-<button id="button">Send!</button>
-<button id="button2">Status</button>
+<input type="file" id="file" />
+<button id="send">Send</button>
+<form id="downloadForm" action="/" style="display: inline-block">
+  <input type="submit" id="download" value="Download" disabled />
+</form>
 <div>
   <textarea id="textarea" cols="30" rows="10"></textarea>
 </div>
 
 <script>
-  const fileEl = document.querySelector('#file')
-  const btnEl = document.querySelector('#button')
-  const btn2El = document.querySelector('#button2')
-  const textareaEl = document.querySelector('#textarea')
+  const fileEl = document.querySelector("#file");
+  const sendEl = document.querySelector("#send");
+  const downloadEl = document.querySelector("#download");
+  const textareaEl = document.querySelector("#textarea");
+  const downloadFormEl = document.querySelector("#downloadForm");
 
-  const fetchStatus =  async () => {
-    const res = await fetch('/status/', {
-      method: 'GET'
-    })
-    const data = await res.json()
+  const fetchStatus = async () => {
+    const res = await fetch("/status/", {
+      method: "GET",
+    });
+    const data = await res.json();
 
-    textareaEl.textContent = JSON.stringify(data, null, 2)
+    if (data.lastZip) {
+      downloadFormEl.action = "/" + data.lastZip.split("/").slice(-2).join("/");
+    }
+
+    downloadEl.disabled = data.lastZip === null;
+    textareaEl.textContent = JSON.stringify(data, null, 2);
 
     return data;
-  }
+  };
 
-  btnEl.addEventListener('click', () => {
-    const formData = new FormData()
+  sendEl.addEventListener("click", () => {
+    const formData = new FormData();
 
-    formData.append('file', fileEl.files[0])
+    formData.append("file", fileEl.files[0]);
 
-    fetch('/update/', {
-      method: 'POST',
-      body: formData
-    })
+    fetch("/update/", {
+      method: "POST",
+      body: formData,
+    });
+  });
 
-    const intId = setInterval(async () => {
-      const data = await fetchStatus();
+  fetchStatus();
 
-      if (data.work !== true) {
-        clearInterval(intId)
-      }
-    }, 2000)
-  })
-
-  btn2El.addEventListener('click', fetchStatus)
+  setInterval(fetchStatus, 2000);
 </script>
