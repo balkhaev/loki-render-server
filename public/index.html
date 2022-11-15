@@ -24,6 +24,7 @@
       downloadFormEl.action = "/" + data.lastZip.split("/").slice(-2).join("/");
     }
 
+    sendEl.disabled = data.work;
     downloadEl.disabled = data.lastZip === null;
     textareaEl.textContent = JSON.stringify(data, null, 2);
 
