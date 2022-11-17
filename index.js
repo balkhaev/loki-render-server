@@ -8,14 +8,14 @@ import archiver from "archiver";
 import fs from "node:fs/promises";
 import { fileURLToPath } from "url";
 
-const app = express();
-const upload = multer({ dest: "uploads/" });
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const zipDirPath = path.join(__dirname, "/public/zip");
 const lokiRefPath = path.join(__dirname, ".loki/reference");
 const uploadDirPath = path.join(__dirname, "/uploads");
 const storybooksDirPath = path.join(__dirname, "/storybooks");
+
+const app = express();
+const upload = multer({ dest: "uploads/" });
 
 let child = null;
 let lastZip = null;
@@ -34,12 +34,13 @@ app.use(express.static("public"));
 
 app.post("/update", upload.single("file"), (req, res) => {
   if (child !== null) {
-    res.send({ error: "Check in progress..." });
+    res.send({ error: "Update in progress..." });
     return;
   }
 
   const storybookDirPath = path.join(storybooksDirPath, req.file.filename);
   const outputZipPath = path.join(zipDirPath, req.file.filename + ".zip");
+
   const outputWS = createWriteStream(outputZipPath);
   const archive = archiver("zip", {
     zlib: { level: 8 },
