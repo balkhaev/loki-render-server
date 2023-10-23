@@ -2,50 +2,55 @@
 <div>output: zip ./.loki/reference</div>
 <br />
 <input type="file" id="file" />
+<input type="text" id="filter" placeholder="filter..." />
 <button id="send">Send</button>
 <form id="downloadForm" action="/" style="display: inline-block">
   <input type="submit" id="download" value="Download" disabled />
 </form>
 <div>
-  <textarea id="textarea" cols="45" rows="10"></textarea>
+  <textarea id="textarea" cols="45" rows="10" placeholder="logs..."></textarea>
 </div>
 
 <script>
-  const fileEl = document.querySelector("#file");
-  const sendEl = document.querySelector("#send");
-  const downloadEl = document.querySelector("#download");
-  const textareaEl = document.querySelector("#textarea");
-  const downloadFormEl = document.querySelector("#downloadForm");
+  const fileEl = document.querySelector("#file")
+  const sendEl = document.querySelector("#send")
+  const filterEl = document.querySelector("#filter")
+  const downloadEl = document.querySelector("#download")
+  const textareaEl = document.querySelector("#textarea")
+  const downloadFormEl = document.querySelector("#downloadForm")
 
   const fetchStatus = async () => {
     const res = await fetch("/status/", {
       method: "GET",
-    });
-    const data = await res.json();
+    })
+    const data = await res.json()
 
     if (data.lastZip) {
-      downloadFormEl.action = "/" + data.lastZip.split("/").slice(-2).join("/");
+      downloadFormEl.action = "/" + data.lastZip.split("/").slice(-2).join("/")
     }
 
-    sendEl.disabled = data.work;
-    downloadEl.disabled = data.lastZip === null;
-    textareaEl.textContent = JSON.stringify(data, null, 2);
+    sendEl.disabled = data.work
+    downloadEl.disabled = data.lastZip === null
+    textareaEl.textContent = JSON.stringify(data, null, 2)
 
-    return data;
-  };
+    return data
+  }
 
   sendEl.addEventListener("click", () => {
-    const formData = new FormData();
+    const formData = new FormData()
 
-    formData.append("file", fileEl.files[0]);
+    formData.append("file", fileEl.files[0])
+    if (filterEl.value) {
+      formData.set("filter", filterEl.value)
+    }
 
     fetch("/update/", {
       method: "POST",
       body: formData,
-    });
-  });
+    })
+  })
 
-  fetchStatus();
+  fetchStatus()
 
-  setInterval(fetchStatus, 2000);
+  setInterval(fetchStatus, 2000)
 </script>
