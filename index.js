@@ -9,7 +9,8 @@ import fs from "node:fs/promises"
 import { fileURLToPath } from "url"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const zipDirPath = path.join(__dirname, "/public/zip")
+const publicDirPath = path.join(__dirname, "/public")
+const zipDirPath = path.join(publicDirPath, "/zip")
 const lokiRefPath = path.join(__dirname, ".loki/reference")
 const uploadDirPath = path.join(__dirname, "/uploads")
 const storybooksDirPath = path.join(__dirname, "/storybooks")
@@ -73,9 +74,7 @@ app.post("/update", upload.single("file"), (req, res) => {
     console.log("archive process close")
 
     child = null
-    lastZip = outputZipPath
-
-    res.send({ file: outputZipPath })
+    lastZip = "/" + path.relative(publicDirPath, outputZipPath)
   })
 
   decompress(req.file.path, storybookDirPath)
@@ -111,6 +110,8 @@ app.post("/update", upload.single("file"), (req, res) => {
 
       child.on("error", onProcessError)
       child.on("close", onProcessClose)
+
+      res.send({ work: child !== null, lastZip })
     })
     .catch((error) => {
       res.send(error)

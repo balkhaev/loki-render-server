@@ -1,6 +1,3 @@
-<div>input: zip ./storybook-static</div>
-<div>output: zip ./.loki/reference</div>
-<br />
 <input type="file" id="file" />
 <input type="text" id="filter" placeholder="filter..." />
 <button id="send">Send</button>
@@ -19,6 +16,32 @@
   const textareaEl = document.querySelector("#textarea")
   const downloadFormEl = document.querySelector("#downloadForm")
 
+  const send = async () => {
+    filterEl.value = ""
+
+    const formData = new FormData()
+
+    formData.append("file", fileEl.files[0])
+
+    if (filterEl.value) {
+      formData.set("filter", filterEl.value)
+    }
+
+    await fetch("/update/", {
+      method: "POST",
+      body: formData,
+    })
+
+    fetchStatus()
+  }
+
+  filterEl.addEventListener("keydown", (e) => {
+    // Enter
+    if (e.keyCode === 13) {
+      send()
+    }
+  })
+
   const fetchStatus = async () => {
     const res = await fetch("/status/", {
       method: "GET",
@@ -26,7 +49,7 @@
     const data = await res.json()
 
     if (data.lastZip) {
-      downloadFormEl.action = "/" + data.lastZip.split("/").slice(-2).join("/")
+      downloadFormEl.action = data.lastZip
     }
 
     sendEl.disabled = data.work
@@ -36,19 +59,7 @@
     return data
   }
 
-  sendEl.addEventListener("click", () => {
-    const formData = new FormData()
-
-    formData.append("file", fileEl.files[0])
-    if (filterEl.value) {
-      formData.set("filter", filterEl.value)
-    }
-
-    fetch("/update/", {
-      method: "POST",
-      body: formData,
-    })
-  })
+  sendEl.addEventListener("click", () => send())
 
   fetchStatus()
 
